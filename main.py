@@ -6,9 +6,10 @@ from io import BytesIO
 from tqdm import tqdm
 from requests.auth import HTTPBasicAuth
 import logging 
+import json
 
 
-BLOCK_SIZE = 1024
+BLOCK_SIZE = 4096 
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -66,7 +67,46 @@ def upload_from_ram(file_in_ram, file_name, username, apikey):
         headers={'name': file_name},
         files={'file': (file_name, file_in_ram)},
     )
-    return response
+    logger.debug(response.text)
+
+    return response.json()
+
+def get_upload_properties(args):
+    # Load .env files
+    load_dotenv()
+
+    if(args.username == None and args.apikey == None):
+        if os.getenv('username') != None and os.getenv('apikey') != None:
+            username = os.getenv('username')
+            apikey = os.getenv('apikey')
+        else:
+            logger.error("Can't get username or apikey from previous credential.")
+            exit()
+    
+    elif(args.username != None and args.apikey != None):
+        username = args.username
+        apikey = args.apikey
+
+    elif(args.username == None or args.apikey == None):
+        logger.error('You need to provide both username and apikey')
+        exit()
+
+    else:
+        logger.error('Credential Error.')
+        exit()
+    
+    filename = args.name if args.name else file_data[0]
+    
+    return filename, username, apikey 
+
+
+def end_message(result):
+    if result['success']:
+        id = result['id']
+        logger.info(f"\n\nDirect download link:\n\thttps://pixeldrain.com/api/file/{id}?download\nUnlimited download using:\n\thttps://pd.cybar.xyz/{id}\nShare or preview using:\n\thttps://pixeldrain.com/u/{id}\n")
+    else:
+        logger.error('Upload error')
+        exit()
 
 
 
@@ -82,29 +122,19 @@ if __name__ == "__main__":
     parser.add_argument('--store_credential', action='store_true', help='Store the username and apikey for future use.\nPrevious stored key will be rewrite')
     args = parser.parse_args()
     
-    # Load .env files
-    load_dotenv()
-
     # Downlaoding files
     file_data = download_to_ram(args.urls)
+    file = file_data[1]
 
-    # Uploading files
-    if(args.username == None and args.apikey == None):
-        if os.getenv('username') != None and os.getenv('apikey') != None:
-            if args.name != None:
-                response = upload_from_ram(file_data[1], args.name, os.getenv('username'), os.getenv('apikey')) 
-            else:
-                response = upload_from_ram(file_data[1], file_data[0], os.getenv('username'), os.getenv('apikey'))
-            logger.debug(response.text)
-        else:
-            logger.error("Can't get username or apikey from previous credential.")
-            exit()
+    # Prepare upload properties 
+    filename, username, apikey = get_upload_properties(args)
 
-    elif(args.username == None or args.apikey == None):
-        logger.error('You need to provide both username and apikey')
-        exit()
+    # Start uploading
+    result = upload_from_ram(file, filename, username, apikey)
 
+    end_message(result)
     
+    # Store credential if success
     if args.store_credential:
         with open('.env', 'w') as file:
             file.write(f'username={args.username}\n')
