@@ -72,8 +72,8 @@ def upload_from_ram(file_in_ram, file_name, username, apikey):
     return response.json()
 
 def get_upload_properties(args):
-    # Load .env files
-    load_dotenv()
+
+    load_dotenv() # Read .env file
 
     if(args.username == None and args.apikey == None):
         if os.getenv('username') != None and os.getenv('apikey') != None:

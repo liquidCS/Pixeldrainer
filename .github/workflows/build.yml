@@ -1,0 +1,32 @@
+name: Build Release 
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: action/checkout@2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: 
+          python-version: '3.13'
+
+      - name: Install pyinstaller 
+        run: pip install pyinstaller
+
+      - name: Build linux executable 
+        run: pyinstaller main.py --onefile -n pixeldrainer-linux
+
+      - name: Upload executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: pixeldrainer-linux
+        path: dist/pixeldrainer-linux/pixeldrainer-linux
+
