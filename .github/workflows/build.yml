@@ -1,12 +1,11 @@
 name: Build Release 
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [ published ]
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,8 +24,8 @@ jobs:
         run: pyinstaller main.py --onefile -n pixeldrainer-linux
 
       - name: Upload executable
-      uses: actions/upload-artifact@v4
-      with:
-        name: pixeldrainer-linux
-        path: dist/pixeldrainer-linux/pixeldrainer-linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixeldrainer-linux
+          path: dist/pixeldrainer-linux/pixeldrainer-linux
 
