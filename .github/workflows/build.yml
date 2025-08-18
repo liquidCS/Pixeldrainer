@@ -25,9 +25,8 @@ jobs:
       - name: Build linux executable 
         run: pyinstaller main.py --onefile -n pixeldrainer-linux
 
-      - name: Create release and upload executable
+      - name: Upload executable
         uses: softprops/action-gh-release@v2
         with:
-          tag: ${{ github.ref }}
           files: dist/pixeldrainer-linux
           token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
