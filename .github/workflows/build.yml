@@ -1,8 +1,10 @@
 name: Build Release 
 
+
 on:
-  release:
-    types: [ published ]
+  push:
+    tags:
+      - "v*"
 
 jobs:
   build:
@@ -23,9 +25,9 @@ jobs:
       - name: Build linux executable 
         run: pyinstaller main.py --onefile -n pixeldrainer-linux
 
-      - name: Upload executable
-        uses: actions/upload-artifact@v4
+      - name: Create release and upload executable
+        uses: softprops/action-gh-release@v2
         with:
-          name: pixeldrainer-linux
-          path: dist/pixeldrainer-linux
-
+          tag: ${{ github.ref }}
+          files: dist/pixeldrainer-linux
+          token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
