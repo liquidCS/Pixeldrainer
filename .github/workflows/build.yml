@@ -23,7 +23,7 @@ jobs:
 
       - name: Activate venv
         run: |
-          . .venv/bin/activate
+          . venv/bin/activate
           echo PATH=$PATH >> $GITHUB_ENV
 
       - name: Install Requirements 
