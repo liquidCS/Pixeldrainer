@@ -1,7 +1,7 @@
 
 # Pixeldrainer
 
-A tool to let you download and directively upload to pixeldrain without writing to disk.
+A tool that let you download and directively upload to pixeldrain without writing to disk.
 
 ## USAGE AND OPTIONS
 ```

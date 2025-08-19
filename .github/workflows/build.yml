@@ -19,9 +19,12 @@ jobs:
           python-version: '3.11'
       
       - name: Setup venv
+        run: python -m venv venv
+
+      - name: Activate venv
         run: |
-          python -m venv venv
-          source venv/bin/activate
+          . .venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
 
       - name: Install Requirements 
         run: pip install -r requirements-build.txt  
