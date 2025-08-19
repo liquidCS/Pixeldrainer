@@ -19,7 +19,9 @@ jobs:
           python-version: '3.11'
       
       - name: Setup venv
-        run: python -m venv venv
+        run: |
+          python -m venv venv
+          source venv/bin/activate
 
       - name: Install Requirements 
         run: pip install -r requirements-build.txt  
