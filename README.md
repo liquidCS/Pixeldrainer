@@ -17,5 +17,5 @@ options:
   -u, --username USERNAME
                         The username of the pixeldrain account you want to upload to.
   -k, --apikey APIKEY   The apikey of the pixeldrain account you want to upload to.
-  --store_credential    Store the username and apikey for future use. Previous stored key will be rewrite
+  --store-credential    Store the username and apikey for future use. Previous stored key will be rewrite
 ```

@@ -119,9 +119,9 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--name', type=str, help='The name for the file you want to store.')
     parser.add_argument('-u', '--username', type=str, help='The username of the pixeldrain account you want to upload to.')
     parser.add_argument('-k', '--apikey', type=str, help='The apikey of the pixeldrain account you want to upload to.')
-    parser.add_argument('--store_credential', action='store_true', help='Store the username and apikey for future use.\nPrevious stored key will be rewrite')
+    parser.add_argument('--store-credential', action='store_true', help='Store the username and apikey for future use.\nPrevious stored key will be rewrite')
     args = parser.parse_args()
-    
+
     # Downlaoding files
     file_data = download_to_ram(args.urls)
     file = file_data[1]
