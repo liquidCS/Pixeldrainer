@@ -26,10 +26,12 @@ jobs:
         run: pyinstaller main.py --onefile -n pixeldrainer-linux
 
       - name: Make static executable
-        run: staticx dist/pixeldrainer-linux build/pixeldrainer-linux
+        run: staticx dist/pixeldrainer-linux dist/pixeldrainer-linux-static 
 
       - name: Upload executable
         uses: softprops/action-gh-release@v2
         with:
-          files: build/pixeldrainer-linux-static
+          files: |
+            dist/pixeldrainer-linux-static
+            dist/pixeldrainer-linux
           token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
