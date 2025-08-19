@@ -2,4 +2,5 @@ requests
 tqdm
 dotenv
 pyinstaller
-staticx==0.17.0
+staticx
+patchelf==0.17.0
