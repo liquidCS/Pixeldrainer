@@ -2,9 +2,8 @@ name: Build Release
 
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -17,16 +16,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with: 
-          python-version: '3.13'
+          python-version: '3.11'
 
-      - name: Install pyinstaller 
-        run: pip install pyinstaller
+      - name: Install Requirements 
+        run: pip install -r requirements-build.txt  
 
       - name: Build linux executable 
         run: pyinstaller main.py --onefile -n pixeldrainer-linux
 
+      - name: Make static executable
+        run: staticx dist/pixeldrainer-linux build/pixeldrainer-linux
+
       - name: Upload executable
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/pixeldrainer-linux
+          files: build/pixeldrainer-linux-static
           token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}

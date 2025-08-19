@@ -1,0 +1,5 @@
+requests
+tqdm
+dotenv
+pyinstaller
+staticx==0.17.0
