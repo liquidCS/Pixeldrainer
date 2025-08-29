@@ -5,7 +5,7 @@ A tool that let you download and directively upload to pixeldrain without writin
 
 ## USAGE AND OPTIONS
 ```
-usage: pixeldrainer [-h] [-n NAME] [-u USERNAME] [-k APIKEY] [--store_credential] urls
+usage: pixeldrainer [-h] [-n NAME] [-u USERNAME] [-k APIKEY] [--store-credential] urls
 ```
 ```
 positional arguments:

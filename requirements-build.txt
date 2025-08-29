@@ -1,6 +1,6 @@
-requests
-tqdm
 dotenv
+patchelf==0.17.0  # Pinned due to incompatibility with staticx (see https://github.com/JonathonReinhart/staticx/issues/243)
 pyinstaller
+requests
 staticx
-patchelf==0.17.0
+tqdm

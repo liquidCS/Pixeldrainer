@@ -13,6 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Can't use setup-python due to --> https://github.com/actions/setup-python/issues/325
       - name: Create and activate venv
         run: |
           python3 -m venv venv
