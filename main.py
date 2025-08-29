@@ -114,12 +114,12 @@ def upload_from_ram(file_in_ram: BytesIO, file_name: str, username: str, apikey:
     return response.json()
 
 
-def upload_local_file(file_obj, file_name: str, username: str, apikey: str) -> dict:
+def upload_local_file(file_path: str, file_name: str, username: str, apikey: str) -> dict:
     """
     Uploads a local file to Pixeldrain.
 
     Args:
-        file_obj: The file object (e.g., from open()).
+        file_path (str): The file path to the file to upload. 
         file_name (str): The name of the file to upload.
         username (str): Pixeldrain username.
         apikey (str): Pixeldrain API key.
@@ -127,16 +127,27 @@ def upload_local_file(file_obj, file_name: str, username: str, apikey: str) -> d
     Returns:
         dict: The JSON response from the Pixeldrain API.
     """
-    logger.info(f'Starting upload of local file: {file_name}')
+    logger.info(f'Starting upload of local file: {file_path}')
 
-    response = requests.post(
-        'https://pixeldrain.com/api/file',
-        auth=HTTPBasicAuth(username, apikey),
-        headers={'name': file_name},
-        files={'file': (file_name, file_obj)},
-    )
-    response.raise_for_status()  # Raise an exception for HTTP errors
-    logger.debug(response.text)
+    try:
+        with open(file_path, 'rb') as local_file_obj:
+            
+            response = requests.post(
+                'https://pixeldrain.com/api/file',
+                auth=HTTPBasicAuth(username, apikey),
+                headers={'name': file_name},
+                files={'file': (file_name, local_file_obj)},
+            )
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            logger.debug(response.text)
+
+    except FileNotFoundError:
+        logger.error(f"Error: Local file not found at '{file_path}'")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error processing local file '{file_path}': {e}")
+        sys.exit(1)
+
     logger.info('Local file upload complete.')
     return response.json()
 
@@ -203,10 +214,18 @@ def display_upload_result(result: dict):
     """
     if result.get('success'):
         file_id = result['id']
-        logger.info(f"\n--- Upload Successful ---"
-                    f"\nDirect download link:\n\thttps://pixeldrain.com/api/file/{file_id}?download"
-                    f"\nUnlimited download using:\n\thttps://pd.cybar.xyz/{file_id}"
-                    f"\nShare or preview using:\n\thttps://pixeldrain.com/u/{file_id}\n")
+        logger.info(
+f"""
++ ---------------------- Upload Successful --------------------- +
+| Share and preview:                                             |
+|    thttps://pixeldrain.com/u/{file_id}                          |
+| Direct download:                                               |
+|    https://pixeldrain.com/api/file/{file_id}?download           |
+| Unlimited download:                                            |
+|    https://pd.cybar.xyz/{file_id}                               |
++ -------------------------------------------------------------- +
+""")
+
     else:
         logger.error(f"Upload failed: {result.get('message', 'Unknown error')}")
         sys.exit(1)
@@ -225,7 +244,7 @@ def main():
     parser.add_argument('-n', '--name', type=str, help='The name for the file you want to store on Pixeldrain.')
     parser.add_argument('-u', '--username', type=str, help='The username of the Pixeldrain account.')
     parser.add_argument('-k', '--apikey', type=str, help='The API key of the Pixeldrain account.')
-    parser.add_argument('--store-credential', action='store_true',
+    parser.add_argument('-s', '--store-credential', action='store_true',
                         help='Store the username and API key in a .env file for future use. '
                              'Previous stored keys will be overwritten.')
     args = parser.parse_args()
@@ -246,28 +265,17 @@ def main():
         upload_result = upload_from_ram(file_in_ram, filename, username, apikey)
     else:
         # Assume it's a local file path
-        try:
-            with open(args.source, 'rb') as local_file_obj:
-                # Determine filename for upload
-                filename = args.name if args.name else os.path.basename(args.source)
-                
-                # Get upload properties (username, apikey)
-                # Pass filename for consistency, BytesIO object is not needed for local file properties
-                _, username, apikey = get_upload_properties(args, [filename, None]) 
+ 
+        # Get upload properties (filename, username, apikey)
+        filename, username, apikey = get_upload_properties(args, [os.path.basename(args.source), None]) 
 
-                # Upload local file
-                upload_result = upload_local_file(local_file_obj, filename, username, apikey)
-        except FileNotFoundError:
-            logger.error(f"Error: Local file not found at '{args.source}'")
-            sys.exit(1)
-        except Exception as e:
-            logger.error(f"Error processing local file '{args.source}': {e}")
-            sys.exit(1)
+        # Upload local file
+        upload_result = upload_local_file(args.source, filename, username, apikey)
 
     if upload_result:
         # Display upload result
         display_upload_result(upload_result)
-        
+ 
         # Store credentials if requested and upload was successful
         if args.store_credential and upload_result.get('success'):
             store_credentials(username, apikey)
