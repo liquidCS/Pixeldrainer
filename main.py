@@ -114,6 +114,33 @@ def upload_from_ram(file_in_ram: BytesIO, file_name: str, username: str, apikey:
     return response.json()
 
 
+def upload_local_file(file_obj, file_name: str, username: str, apikey: str) -> dict:
+    """
+    Uploads a local file to Pixeldrain.
+
+    Args:
+        file_obj: The file object (e.g., from open()).
+        file_name (str): The name of the file to upload.
+        username (str): Pixeldrain username.
+        apikey (str): Pixeldrain API key.
+
+    Returns:
+        dict: The JSON response from the Pixeldrain API.
+    """
+    logger.info(f'Starting upload of local file: {file_name}')
+
+    response = requests.post(
+        'https://pixeldrain.com/api/file',
+        auth=HTTPBasicAuth(username, apikey),
+        headers={'name': file_name},
+        files={'file': (file_name, file_obj)},
+    )
+    response.raise_for_status()  # Raise an exception for HTTP errors
+    logger.debug(response.text)
+    logger.info('Local file upload complete.')
+    return response.json()
+
+
 # --- Credential Management ---
 def get_upload_properties(args: argparse.Namespace, file_data: list) -> tuple:
     """
@@ -191,9 +218,10 @@ def main():
     """
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description='A tool to download files and directly upload them to Pixeldrain without writing to disk.'
+        description='A tool to upload files to Pixeldrain from a URL or local disk.'
     )
-    parser.add_argument('urls', type=str, help='The URL of the file to download from.')
+    parser.add_argument('source', type=str,
+                        help='The URL of the file to download from, or the path to a local file to upload.')
     parser.add_argument('-n', '--name', type=str, help='The name for the file you want to store on Pixeldrain.')
     parser.add_argument('-u', '--username', type=str, help='The username of the Pixeldrain account.')
     parser.add_argument('-k', '--apikey', type=str, help='The API key of the Pixeldrain account.')
@@ -202,22 +230,47 @@ def main():
                              'Previous stored keys will be overwritten.')
     args = parser.parse_args()
 
-    # Download file to RAM
-    file_data = download_to_ram(args.urls)
-    file_in_ram = file_data[1]
-
-    # Get upload properties (filename, username, apikey)
-    filename, username, apikey = get_upload_properties(args, file_data)
-
-    # Upload file from RAM
-    upload_result = upload_from_ram(file_in_ram, filename, username, apikey)
-
-    # Display upload result
-    display_upload_result(upload_result)
+    upload_result = None
+    filename = None
     
-    # Store credentials if requested and upload was successful
-    if args.store_credential and upload_result.get('success'):
-        store_credentials(username, apikey)
+    # Check if the source is a URL
+    if args.source.startswith(('http://', 'https://')):
+        # Download file to RAM
+        file_data = download_to_ram(args.source)
+        file_in_ram = file_data[1]
+
+        # Get upload properties (filename, username, apikey)
+        filename, username, apikey = get_upload_properties(args, file_data)
+
+        # Upload file from RAM
+        upload_result = upload_from_ram(file_in_ram, filename, username, apikey)
+    else:
+        # Assume it's a local file path
+        try:
+            with open(args.source, 'rb') as local_file_obj:
+                # Determine filename for upload
+                filename = args.name if args.name else os.path.basename(args.source)
+                
+                # Get upload properties (username, apikey)
+                # Pass filename for consistency, BytesIO object is not needed for local file properties
+                _, username, apikey = get_upload_properties(args, [filename, None]) 
+
+                # Upload local file
+                upload_result = upload_local_file(local_file_obj, filename, username, apikey)
+        except FileNotFoundError:
+            logger.error(f"Error: Local file not found at '{args.source}'")
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"Error processing local file '{args.source}': {e}")
+            sys.exit(1)
+
+    if upload_result:
+        # Display upload result
+        display_upload_result(upload_result)
+        
+        # Store credentials if requested and upload was successful
+        if args.store_credential and upload_result.get('success'):
+            store_credentials(username, apikey)
 
 
 if __name__ == "__main__":
