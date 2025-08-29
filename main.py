@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 # --- File Operations ---
-def download_to_ram(url: str) -> list:
+def download_to_ram(url: str) -> tuple:
     """
     Downloads a file from a given URL directly into RAM using BytesIO.
 
@@ -28,7 +28,7 @@ def download_to_ram(url: str) -> list:
         url (str): The URL of the file to download.
 
     Returns:
-        list: A list containing the filename and the BytesIO object with the file content.
+        tuple: (default_file_name, file_in_ram)
     """
     logger.info('Starting file download to RAM.')
     
@@ -41,9 +41,9 @@ def download_to_ram(url: str) -> list:
     
     # Determine filename from Content-Disposition header or default to 'Unnamed'
     if content_disposition:
-        filename = content_disposition.split('filename=')[1].strip('"')
+        default_file_name = content_disposition.split('filename=')[1].strip('"')
     else:
-        filename = 'Unnamed'
+        default_file_name = 'Unnamed'
 
     file_in_ram = BytesIO()
     downloaded_size = 0
@@ -56,7 +56,7 @@ def download_to_ram(url: str) -> list:
             response.raise_for_status()  # Raise an exception for HTTP errors
 
             if response.status_code == 206:  # Partial Content
-                with tqdm(total=total_size, initial=downloaded_size, unit='iB', unit_scale=True, unit_divisor=1024, desc=f"Downloading {filename}") as bar:
+                with tqdm(total=total_size, initial=downloaded_size, unit='iB', unit_scale=True, unit_divisor=1024, desc=f"Downloading {default_file_name}") as bar:
                     for data in response.iter_content(BLOCK_SIZE):
                         file_in_ram.write(data)
                         downloaded_size += len(data)
@@ -68,7 +68,7 @@ def download_to_ram(url: str) -> list:
                 file_in_ram.truncate(0)
                 response = requests.get(url, stream=True, timeout=60)
                 response.raise_for_status()
-                with tqdm(total=total_size, unit='iB', unit_scale=True, unit_divisor=1024, desc=f"Downloading {filename}") as bar:
+                with tqdm(total=total_size, unit='iB', unit_scale=True, unit_divisor=1024, desc=f"Downloading {default_file_name}") as bar:
                     for data in response.iter_content(BLOCK_SIZE):
                         file_in_ram.write(data)
                         downloaded_size += len(data)
@@ -84,7 +84,7 @@ def download_to_ram(url: str) -> list:
 
     file_in_ram.seek(0)  # Move cursor to the beginning for subsequent reads
     logger.info("File download complete.")
-    return [filename, file_in_ram]
+    return default_file_name, file_in_ram
 
 
 def upload_from_ram(file_in_ram: BytesIO, file_name: str, username: str, apikey: str) -> dict:
@@ -153,14 +153,14 @@ def upload_local_file(file_path: str, file_name: str, username: str, apikey: str
 
 
 # --- Credential Management ---
-def get_upload_properties(args: argparse.Namespace, file_data: list) -> tuple:
+def get_upload_properties(args: argparse.Namespace, default_file_name: str) -> tuple:
     """
     Retrieves username, API key, and filename for upload.
     Prioritizes command-line arguments, then environment variables.
 
     Args:
         args (argparse.Namespace): Command-line arguments.
-        file_data (list): List containing original filename and BytesIO object.
+        default_file_name (str): The default file name of the file (Name the URL or name of the local file in disk). 
 
     Returns:
         tuple: (filename, username, apikey)
@@ -182,7 +182,7 @@ def get_upload_properties(args: argparse.Namespace, file_data: list) -> tuple:
         sys.exit(1)
     
     # Determine the filename for upload
-    filename = args.name if args.name else file_data[0]
+    filename = args.name if args.name else default_file_name 
     
     return filename, username, apikey
 
@@ -218,7 +218,7 @@ def display_upload_result(result: dict):
 f"""
 + ---------------------- Upload Successful --------------------- +
 | Share and preview:                                             |
-|    thttps://pixeldrain.com/u/{file_id}                          |
+|    https://pixeldrain.com/u/{file_id}                           |
 | Direct download:                                               |
 |    https://pixeldrain.com/api/file/{file_id}?download           |
 | Unlimited download:                                            |
@@ -253,13 +253,14 @@ def main():
     filename = None
     
     # Check if the source is a URL
+    # Todo: Check whether a account is valid before upload 
+    # Todo: Check whether there is enough RAM before downloading
     if args.source.startswith(('http://', 'https://')):
         # Download file to RAM
-        file_data = download_to_ram(args.source)
-        file_in_ram = file_data[1]
+        default_file_name, file_in_ram = download_to_ram(args.source)
 
         # Get upload properties (filename, username, apikey)
-        filename, username, apikey = get_upload_properties(args, file_data)
+        filename, username, apikey = get_upload_properties(args, default_file_name)
 
         # Upload file from RAM
         upload_result = upload_from_ram(file_in_ram, filename, username, apikey)
@@ -267,7 +268,7 @@ def main():
         # Assume it's a local file path
  
         # Get upload properties (filename, username, apikey)
-        filename, username, apikey = get_upload_properties(args, [os.path.basename(args.source), None]) 
+        filename, username, apikey = get_upload_properties(args, os.path.basename(args.source)) 
 
         # Upload local file
         upload_result = upload_local_file(args.source, filename, username, apikey)
