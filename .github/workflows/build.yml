@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Download Linux executables
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v5
         with:
           name: pixeldrainer-linux
           path: dist/
