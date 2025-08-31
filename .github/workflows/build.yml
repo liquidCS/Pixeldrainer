@@ -29,10 +29,55 @@ jobs:
       - name: Make static executable
         run: staticx dist/pixeldrainer-linux dist/pixeldrainer-linux-static 
 
-      - name: Upload executable
+      - name: Upload Linux executables
+        uses: actions/upload-artifact@v2
+        with:
+          name: pixeldrainer-linux
+          path: |
+            dist/pixeldrainer-linux-static
+            dist/pixeldrainer-linux
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Requirements
+        run: pip install -r requirements-build.txt
+
+      - name: Build Windows executable
+        run: pyinstaller main.py --onefile -n pixeldrainer-windows.exe
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v2
+        with:
+          name: pixeldrainer-windows
+          path: dist/pixeldrainer-windows.exe
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build, build-windows]
+
+    steps:
+      - name: Download Linux executables
+        uses: actions/download-artifact@v2
+        with:
+          name: pixeldrainer-linux
+          path: dist/
+
+      - name: Download Windows executable
+        uses: actions/download-artifact@v2
+        with:
+          name: pixeldrainer-windows
+          path: dist/
+
+      - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/pixeldrainer-linux-static
             dist/pixeldrainer-linux
+            dist/pixeldrainer-windows.exe
           token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
